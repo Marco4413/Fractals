@@ -84,6 +84,24 @@ void main() {
 }
 `;
 
+const _SET_COUNT = 3;
+
+/**
+ * Loops the specified Number
+ * 
+ * Examples:
+ *  - (-1, 0, 3) => 2
+ *  - ( 3, 0, 3) => 0
+ * @param {Number} value
+ * @param {Number} minValue
+ * @param {Number} maxValue
+ * @returns {Number}
+ */
+const loopNumber = (value, minValue, maxValue) => {
+    const valueDelta = (value - minValue) % (maxValue - minValue);
+    return valueDelta < 0 ? maxValue + valueDelta : minValue + valueDelta;
+};
+
 window.addEventListener("load", () => {
     const threeCanvas = new ThreeShaderCanvas({
         "fragmentShader": _FRACTAL_FRAGMENT_SHADER,
@@ -103,10 +121,10 @@ window.addEventListener("load", () => {
     window.addEventListener("keydown", ev => {
         switch (ev.key.toLowerCase()) {
         case "arrowup":
-            threeCanvas.applyToUniform("setId", u => u + 1);
+            threeCanvas.applyToUniform("setId", u => loopNumber(u + 1, 0, _SET_COUNT));
             break;
         case "arrowdown":
-            threeCanvas.applyToUniform("setId", u => u - 1);
+            threeCanvas.applyToUniform("setId", u => loopNumber(u - 1, 0, _SET_COUNT));
             break;
         case "j":
             threeCanvas.applyToUniform("juliaSet", u => !u);
