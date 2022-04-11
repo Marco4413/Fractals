@@ -1,5 +1,7 @@
 ## Fractals
 
+![preview](./preview.png)
+
 This project is a Fractal Visualizer made using [ThreeShaderCanvas](https://github.com/hds536jhmk/ThreeShaderCanvas)
 
 ### Keybinds
