@@ -1,5 +1,6 @@
 import { ThreeShaderCanvas } from "./ThreeShaderCanvas/ThreeShaderCanvas.js";
 
+const _SET_COUNT = 3;
 const _FRACTAL_FRAGMENT_SHADER = `
 vec2 complexMultiply(vec2 a, vec2 b) {
     return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
@@ -84,8 +85,6 @@ void main() {
 }
 `;
 
-const _SET_COUNT = 3;
-
 /**
  * Loops the specified Number
  * 
@@ -102,64 +101,122 @@ const loopNumber = (value, minValue, maxValue) => {
     return valueDelta < 0 ? maxValue + valueDelta : minValue + valueDelta;
 };
 
+const THREE_CANVAS = new ThreeShaderCanvas({
+    "autoAppend": false,
+    "autoStart": false,
+    "fragmentShader": _FRACTAL_FRAGMENT_SHADER,
+    "uniforms": {
+        "maxIterations": { "value": 100 },
+        "infinity": { "value": 4 },
+        "setId": { "value": 0 },
+        "scale": { "value": 1 },
+        "xOffset": { "value": 0 },
+        "yOffset": { "value": 0 },
+        "juliaSet": { "value": false },
+        "juliaSetReal": { "value": 0 },
+        "juliaSetImaginary": { "value": 0 }
+    }
+});
+
+const _ZOOM_SPEED = 0.1;
+
+/**
+ * @param {Number} direction
+ */
+const changeZoom = (direction) => {
+    const newScale = THREE_CANVAS.getUniform("scale") + Math.sign(direction) * _ZOOM_SPEED * THREE_CANVAS.getUniform("scale");
+    if (newScale > 0) THREE_CANVAS.setUniform("scale", newScale);
+};
+
+/**
+ * @param {Number} deltaX
+ * @param {Number} deltaY
+ */
+const moveOffset = (deltaX, deltaY) => {
+    const screenWidth = THREE_CANVAS.getUniform("screenWidth");
+    const screenHeight = THREE_CANVAS.getUniform("screenHeight");
+    const minScreenSize = Math.min(screenWidth, screenHeight);
+
+    THREE_CANVAS.applyToUniform(
+        "xOffset", u => u - deltaX / minScreenSize * THREE_CANVAS.getUniform("scale")
+    );
+
+    THREE_CANVAS.applyToUniform(
+        "yOffset", u => u - deltaY / minScreenSize * THREE_CANVAS.getUniform("scale")
+    );
+};
+
+/**
+ * @param {Number} indexOffset
+ */
+const changeSet = (indexOffset) => {
+    THREE_CANVAS.applyToUniform("setId", u => loopNumber(u + indexOffset, 0, _SET_COUNT));
+};
+
+/**
+ * @param {Boolean} [newState]
+ */
+const toggleJuliaSet = (newState = null) => {
+    if (newState == null)
+        THREE_CANVAS.applyToUniform("juliaSet", u => !u);
+    else THREE_CANVAS.setUniform("juliaSet", newState);
+};
+
+/**
+ * @param {Number} pageX
+ * @param {Number} pageY
+ * @param {Boolean} [enableJulia]
+ */
+const setJuliaCoords = (pageX, pageY, enableJulia = false) => {
+    const screenWidth = THREE_CANVAS.getUniform("screenWidth");
+    const screenHeight = THREE_CANVAS.getUniform("screenHeight");
+    const minScreenSize = Math.min(screenWidth, screenHeight);
+
+    if (enableJulia) THREE_CANVAS.setUniform("juliaSet", true);
+
+    THREE_CANVAS.setUniform(
+        "juliaSetReal",
+        // With (posX / screenWidth) being the UV coordinate
+        // This formula is equivalent to:
+        //  (posX / screenWidth - 0.5) * screenWidth / minScreenSize * scale + xOffset
+        // Which is the one used in the shader to get the actual position of the pixels
+        (pageX - 0.5 * screenWidth) / minScreenSize * THREE_CANVAS.getUniform("scale")
+            + THREE_CANVAS.getUniform("xOffset")
+    );
+
+    THREE_CANVAS.setUniform(
+        "juliaSetImaginary",
+        (pageY - 0.5 * screenHeight) / minScreenSize * THREE_CANVAS.getUniform("scale")
+            + THREE_CANVAS.getUniform("yOffset")
+    );
+};
+
 window.addEventListener("load", () => {
-    const threeCanvas = new ThreeShaderCanvas({
-        "fragmentShader": _FRACTAL_FRAGMENT_SHADER,
-        "uniforms": {
-            "maxIterations": { "value": 100 },
-            "infinity": { "value": 4 },
-            "setId": { "value": 0 },
-            "scale": { "value": 1 },
-            "xOffset": { "value": 0 },
-            "yOffset": { "value": 0 },
-            "juliaSet": { "value": false },
-            "juliaSetReal": { "value": 0 },
-            "juliaSetImaginary": { "value": 0 }
-        }
-    });
+    document.body.appendChild(THREE_CANVAS.getDomElement());
+    THREE_CANVAS.startDrawing();
+});
 
-    window.addEventListener("keydown", ev => {
-        switch (ev.key.toLowerCase()) {
-        case "arrowup":
-            threeCanvas.applyToUniform("setId", u => loopNumber(u + 1, 0, _SET_COUNT));
-            break;
-        case "arrowdown":
-            threeCanvas.applyToUniform("setId", u => loopNumber(u - 1, 0, _SET_COUNT));
-            break;
-        case "j":
-            threeCanvas.applyToUniform("juliaSet", u => !u);
-        }
-    });
+window.addEventListener("keydown", ev => {
+    switch (ev.key.toLowerCase()) {
+    case "arrowup":
+        changeSet(1);
+        break;
+    case "arrowdown":
+        changeSet(-1);
+        break;
+    case "j":
+        toggleJuliaSet();
+    }
+});
 
-    window.addEventListener("wheel", ev => {
-        const newScale = threeCanvas.getUniform("scale") + Math.sign(ev.deltaY) * 0.1 * threeCanvas.getUniform("scale");
-        if (newScale > 0) threeCanvas.setUniform("scale", newScale);
-    });
+window.addEventListener("wheel", ev => {
+    changeZoom(ev.deltaY);
+});
     
-    window.addEventListener("mousemove", ev => {
-        const screenWidth = threeCanvas.getUniform("screenWidth");
-        const screenHeight = threeCanvas.getUniform("screenHeight");
-
-        if (ev.ctrlKey) {
-            threeCanvas.setUniform("juliaSet", true);
-            threeCanvas.setUniform(
-                "juliaSetReal",
-                (ev.pageX / screenWidth - 0.5) * threeCanvas.getUniform("scale")
-                    + threeCanvas.getUniform("xOffset")
-            );
-            threeCanvas.setUniform(
-                "juliaSetImaginary",
-                (ev.pageY / screenHeight - 0.5) * threeCanvas.getUniform("scale")
-                    + threeCanvas.getUniform("yOffset")
-            );
-        } else if (ev.buttons === 1) {
-            const minScreenSize = Math.min(screenWidth, screenHeight);
-            threeCanvas.applyToUniform(
-                "xOffset", u => u - ev.movementX / minScreenSize * threeCanvas.getUniform("scale")
-            );
-            threeCanvas.applyToUniform(
-                "yOffset", u => u - ev.movementY / minScreenSize * threeCanvas.getUniform("scale")
-            );
-        }
-    });
+window.addEventListener("pointermove", ev => {
+    if (ev.ctrlKey) {
+        setJuliaCoords(ev.pageX, ev.pageY, true);
+    } else if (ev.buttons === 1) {
+        moveOffset(ev.movementX, ev.movementY);
+    }
 });
