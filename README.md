@@ -2,7 +2,7 @@
 
 ![preview](./preview.png)
 
-This project is a Fractal Visualizer made using [ThreeShaderCanvas](https://github.com/hds536jhmk/ThreeShaderCanvas)
+This project is a Fractal Visualizer made using [ThreeShaderCanvas](https://github.com/Marco4413/ThreeShaderCanvas)
 
 ### Keybinds
 
