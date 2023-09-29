@@ -35,6 +35,9 @@ uniform bool juliaSet;
 uniform float juliaSetReal;
 uniform float juliaSetImaginary;
 
+uniform vec3 baseColor;
+uniform vec3 blendColor;
+
 // These can also be integers but for math reasons we'll store them as floats
 uniform float screenWidth;
 uniform float screenHeight;
@@ -78,10 +81,11 @@ void main() {
         }
     }
 
-    float grayScale = float(iteration) / float(maxIterations) * float(iteration != maxIterations);
+    float blend = float(iteration) / float(maxIterations) * float(iteration != maxIterations);
 
-    // gl_FragColor = vec4(clamp(c, 0.0, 1.0) * grayScale, grayScale, 1.0);
-    gl_FragColor = vec4(0.03, 0.0, grayScale, 1.0);
+    // gl_FragColor = vec4(clamp(c, 0.0, 1.0) * blend, blend, 1.0);
+    // gl_FragColor = vec4(0.03, 0.0, blend, 1.0);
+    gl_FragColor = vec4(clamp(baseColor + blendColor * blend, 0.0, 1.0), 1.0);
 }
 `;
 
@@ -114,7 +118,9 @@ const THREE_CANVAS = new ThreeShaderCanvas({
         "yOffset": { "value": 0 },
         "juliaSet": { "value": false },
         "juliaSetReal": { "value": 0 },
-        "juliaSetImaginary": { "value": 0 }
+        "juliaSetImaginary": { "value": 0 },
+        "baseColor": { "value": [ 0.03, 0.0, 0.0 ] },
+        "blendColor": { "value": [ 0.0, 0.0, 1.0 ] }
     }
 });
 
