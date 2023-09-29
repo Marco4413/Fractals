@@ -124,6 +124,9 @@ const THREE_CANVAS = new ThreeShaderCanvas({
     }
 });
 
+/** @type {HTMLDivElement|null} */
+let SETTINGS_PANEL = null;
+
 const _ZOOM_SPEED = 0.1;
 
 /**
@@ -197,9 +200,56 @@ const setJuliaCoords = (pageX, pageY, enableJulia = false) => {
     );
 };
 
+const colorFromHex = (hex) => {
+    const rawColor = Number.parseInt(hex, 16);
+    if (Number.isNaN(rawColor))
+        return null;
+    return [
+        ((rawColor & 0xff0000) >> 16) / 255,
+        ((rawColor & 0x00ff00) >>  8) / 255,
+        ((rawColor & 0x0000ff)      ) / 255,
+    ];
+};
+
+const colorToHex = (color) => {
+    const value = (
+        (Math.max(Math.min(color[0] * 255, 255), 0) << 16) |
+        (Math.max(Math.min(color[1] * 255, 255), 0) <<  8) |
+        (Math.max(Math.min(color[2] * 255, 255), 0)      )
+    );
+
+    let hex = value.toString(16);
+    if (hex.length < 6) {
+        // Pad with zeroes
+        const padding = 6 - hex.length;
+        hex = "0".repeat(padding) + hex;
+    }
+
+    return hex;
+};
+
 window.addEventListener("load", () => {
     document.body.appendChild(THREE_CANVAS.getDomElement());
     THREE_CANVAS.startDrawing();
+    SETTINGS_PANEL = document.getElementById("settings-panel");
+
+    /** @type {HTMLInputElement} */
+    const baseColor = document.getElementById("base-color");
+    baseColor.value = `#${colorToHex(THREE_CANVAS.getUniform("baseColor"))}`;
+    baseColor.addEventListener("change", () => {
+        const color = colorFromHex(baseColor.value.slice(1));
+        if (color != null)
+            THREE_CANVAS.setUniform("baseColor", color)
+    });
+
+    /** @type {HTMLInputElement} */
+    const blendColor = document.getElementById("blend-color");
+    blendColor.value = `#${colorToHex(THREE_CANVAS.getUniform("blendColor"))}`;
+    blendColor.addEventListener("change", () => {
+        const color = colorFromHex(blendColor.value.slice(1));
+        if (color != null)
+            THREE_CANVAS.setUniform("blendColor", color)
+    });
 });
 
 window.addEventListener("keydown", ev => {
@@ -212,6 +262,9 @@ window.addEventListener("keydown", ev => {
         break;
     case "j":
         toggleJuliaSet();
+        break;
+    case "h":
+        SETTINGS_PANEL?.classList.toggle("hidden");
     }
 });
 
