@@ -128,6 +128,8 @@ const THREE_CANVAS = new ThreeShaderCanvas({
 let SETTINGS_PANEL = null;
 
 const _ZOOM_SPEED = 0.1;
+const _KEY_MOVEMENT_SPEED = 1;
+const _SHIFT_MOVEMENT_MULTIPLIER = 10;
 
 /**
  * @param {Number} direction
@@ -253,6 +255,11 @@ window.addEventListener("load", () => {
 });
 
 window.addEventListener("keydown", ev => {
+    // I feel like I'm "wasting performance" by calculating this at every key press.
+    //  Shouldn't be a big deal though.
+    const desiredMovementSpeed = ev.shiftKey ?
+        (_KEY_MOVEMENT_SPEED * _SHIFT_MOVEMENT_MULTIPLIER) :
+        _KEY_MOVEMENT_SPEED;
     switch (ev.key.toLowerCase()) {
     case "arrowup":
         changeSet(1);
@@ -265,6 +272,25 @@ window.addEventListener("keydown", ev => {
         break;
     case "h":
         SETTINGS_PANEL?.classList.toggle("hidden");
+        break;
+    case "+":
+        changeZoom(-1);
+        break;
+    case "-":
+        changeZoom(1);
+        break;
+    case "w":
+        moveOffset(0, desiredMovementSpeed);
+        break;
+    case "s":
+        moveOffset(0, -desiredMovementSpeed);
+        break;
+    case "a":
+        moveOffset(desiredMovementSpeed, 0);
+        break;
+    case "d":
+        moveOffset(-desiredMovementSpeed, 0);
+        break;
     }
 });
 
